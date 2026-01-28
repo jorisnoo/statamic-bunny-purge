@@ -23,6 +23,10 @@ class StatamicBunnyPurgeServiceProvider extends PackageServiceProvider
     {
         $this->app->singleton(BunnyPurgeService::class);
 
+        if (! filled(config('statamic-bunny-purge.api_key'))) {
+            return;
+        }
+
         Event::listen(StaticCacheCleared::class, PurgeAllOnStaticCacheCleared::class);
         Event::listen(UrlInvalidated::class, PurgeUrlOnUrlInvalidated::class);
     }

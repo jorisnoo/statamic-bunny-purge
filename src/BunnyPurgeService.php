@@ -7,6 +7,11 @@ use Illuminate\Support\Facades\Log;
 
 class BunnyPurgeService
 {
+    public function isEnabled(): bool
+    {
+        return filled(config('statamic-bunny-purge.api_key'));
+    }
+
     public function purgeUrl(string $url): bool
     {
         return $this->sendPurgeRequest([$url]);
