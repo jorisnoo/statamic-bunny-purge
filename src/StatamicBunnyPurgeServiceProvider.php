@@ -2,9 +2,9 @@
 
 namespace Noo\StatamicBunnyPurge;
 
+use Noo\StatamicBunnyPurge\Commands\StatamicBunnyPurgeCommand;
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
-use Noo\StatamicBunnyPurge\Commands\StatamicBunnyPurgeCommand;
 
 class StatamicBunnyPurgeServiceProvider extends PackageServiceProvider
 {
