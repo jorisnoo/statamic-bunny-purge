@@ -1,6 +1,6 @@
 <?php
 
-namespace VendorName\Skeleton\Database\Factories;
+namespace Noo\StatamicBunnyPurge\Database\Factories;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
 

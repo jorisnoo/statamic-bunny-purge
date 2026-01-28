@@ -1,12 +1,12 @@
 <?php
 
-namespace VendorName\Skeleton\Commands;
+namespace Noo\StatamicBunnyPurge\Commands;
 
 use Illuminate\Console\Command;
 
-class SkeletonCommand extends Command
+class StatamicBunnyPurgeCommand extends Command
 {
-    public $signature = 'skeleton';
+    public $signature = 'statamic-bunny-purge';
 
     public $description = 'My command';
 

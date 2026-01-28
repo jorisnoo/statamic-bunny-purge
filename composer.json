@@ -1,17 +1,17 @@
 {
-    "name": ":vendor_slug/:package_slug",
-    "description": ":package_description",
+    "name": "jorisnoo/statamic-bunny-purge",
+    "description": "This is my package statamic-bunny-purge",
     "keywords": [
-        ":vendor_name",
+        "Joris Noordermeer",
         "laravel",
-        ":package_slug"
+        "statamic-bunny-purge"
     ],
-    "homepage": "https://github.com/:vendor_slug/:package_slug",
+    "homepage": "https://github.com/jorisnoo/statamic-bunny-purge",
     "license": "MIT",
     "authors": [
         {
-            "name": ":author_name",
-            "email": "author@domain.com",
+            "name": "Joris Noordermeer",
+            "email": "contact@noordermeer.ch",
             "role": "Developer"
         }
     ],
@@ -35,13 +35,13 @@
     },
     "autoload": {
         "psr-4": {
-            "VendorName\\Skeleton\\": "src/",
-            "VendorName\\Skeleton\\Database\\Factories\\": "database/factories/"
+            "Noo\\StatamicBunnyPurge\\": "src/",
+            "Noo\\StatamicBunnyPurge\\Database\\Factories\\": "database/factories/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "VendorName\\Skeleton\\Tests\\": "tests/",
+            "Noo\\StatamicBunnyPurge\\Tests\\": "tests/",
             "Workbench\\App\\": "workbench/app/"
         }
     },
@@ -63,10 +63,10 @@
     "extra": {
         "laravel": {
             "providers": [
-                "VendorName\\Skeleton\\SkeletonServiceProvider"
+                "Noo\\StatamicBunnyPurge\\StatamicBunnyPurgeServiceProvider"
             ],
             "aliases": {
-                "Skeleton": "VendorName\\Skeleton\\Facades\\Skeleton"
+                "StatamicBunnyPurge": "Noo\\StatamicBunnyPurge\\Facades\\StatamicBunnyPurge"
             }
         }
     },
