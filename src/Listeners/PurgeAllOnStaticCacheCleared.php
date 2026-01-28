@@ -7,7 +7,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Noo\StatamicBunnyPurge\BunnyPurgeService;
 use Statamic\Events\StaticCacheCleared;
 
-class PurgeAllOnStaticCacheCleared implements ShouldQueue, ShouldBeUnique
+class PurgeAllOnStaticCacheCleared implements ShouldBeUnique, ShouldQueue
 {
     public function __construct(
         private BunnyPurgeService $bunnyPurgeService
