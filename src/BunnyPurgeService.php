@@ -23,6 +23,7 @@ class BunnyPurgeService
     private function sendPurgeRequest(array $urls): bool
     {
         $apiKey = config('statamic-bunny-purge.api_key');
+        $authType = config('statamic-bunny-purge.auth_type', 'bunny');
 
         if (! $apiKey) {
             Log::warning('Bunny purge API key not configured');
@@ -30,12 +31,12 @@ class BunnyPurgeService
             return false;
         }
 
-        $response = Http::withHeaders([
-            'AccessKey' => $apiKey,
-            'Content-Type' => 'application/json',
-        ])->post(config('statamic-bunny-purge.api_url'), [
-            'urls' => $urls,
-        ]);
+        $headers = $authType === 'bearer'
+            ? ['Authorization' => "Bearer {$apiKey}"]
+            : ['AccessKey' => $apiKey];
+
+        $response = Http::withHeaders($headers)
+            ->post(config('statamic-bunny-purge.api_url'), ['urls' => $urls]);
 
         if ($response->failed()) {
             Log::error('Bunny purge request failed', [
