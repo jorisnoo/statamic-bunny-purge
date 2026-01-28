@@ -35,8 +35,7 @@
     },
     "autoload": {
         "psr-4": {
-            "Noo\\StatamicBunnyPurge\\": "src/",
-            "Noo\\StatamicBunnyPurge\\Database\\Factories\\": "database/factories/"
+            "Noo\\StatamicBunnyPurge\\": "src/"
         }
     },
     "autoload-dev": {
@@ -64,10 +63,7 @@
         "laravel": {
             "providers": [
                 "Noo\\StatamicBunnyPurge\\StatamicBunnyPurgeServiceProvider"
-            ],
-            "aliases": {
-                "StatamicBunnyPurge": "Noo\\StatamicBunnyPurge\\Facades\\StatamicBunnyPurge"
-            }
+            ]
         }
     },
     "minimum-stability": "dev",
