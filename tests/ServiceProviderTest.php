@@ -1,8 +1,6 @@
 <?php
 
 use Illuminate\Support\Facades\Event;
-use Noo\StatamicBunnyPurge\Listeners\PurgeAllOnStaticCacheCleared;
-use Noo\StatamicBunnyPurge\Listeners\PurgeUrlOnUrlInvalidated;
 use Statamic\Events\StaticCacheCleared;
 use Statamic\Events\UrlInvalidated;
 
