@@ -21,9 +21,11 @@ class StatamicBunnyPurgeServiceProvider extends PackageServiceProvider
 
     public function packageBooted(): void
     {
-        $this->app->singleton(BunnyPurgeService::class);
+        $this->app->singleton(CdnPurgeService::class);
 
-        if (! filled(config('statamic-bunny-purge.api_key'))) {
+        $service = $this->app->make(CdnPurgeService::class);
+
+        if (! $service->isEnabled()) {
             return;
         }
 

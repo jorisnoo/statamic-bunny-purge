@@ -1,8 +1,6 @@
 <?php
 
 return [
-    'api_key' => env('BUNNY_PURGE_KEY'),
-    'api_url' => env('BUNNY_PURGE_API_URL', 'https://api.bunny.net/purge'),
-    'site_url' => env('BUNNY_PURGE_SITE_URL', env('APP_URL')),
-    'auth_type' => env('BUNNY_PURGE_AUTH_TYPE', 'bunny'), // 'bunny' or 'bearer'
+    'provider' => env('CDN_PURGE_PROVIDER', 'bunny'),
+    'site_url' => env('CDN_PURGE_SITE_URL', env('APP_URL')),
 ];

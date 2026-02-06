@@ -27,11 +27,8 @@ class TestCase extends Orchestra
     public function getEnvironmentSetUp($app)
     {
         config()->set('database.default', 'testing');
-
-        /*
-         foreach (\Illuminate\Support\Facades\File::allFiles(__DIR__ . '/../database/migrations') as $migration) {
-            (include $migration->getRealPath())->up();
-         }
-         */
+        config()->set('statamic-bunny-purge.provider', 'bunny');
+        config()->set('statamic-bunny-purge.site_url', 'https://example.com');
+        config()->set('services.bunny.api_key', 'test-key');
     }
 }
