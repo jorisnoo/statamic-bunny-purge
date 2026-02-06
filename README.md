@@ -25,35 +25,32 @@ This is the contents of the published config file:
 
 ```php
 return [
-    'api_key' => env('BUNNY_PURGE_KEY'),
-    'api_url' => env('BUNNY_PURGE_API_URL', 'https://api.bunny.net/purge'),
-    'site_url' => env('BUNNY_PURGE_SITE_URL', env('APP_URL')),
-    'auth_type' => env('BUNNY_PURGE_AUTH_TYPE', 'bunny'), // 'bunny' or 'bearer'
+    'provider' => env('CDN_PURGE_PROVIDER', 'bunny'),
+    'site_url' => env('CDN_PURGE_SITE_URL', env('APP_URL')),
 ];
 ```
 
 ## Configuration
 
-Add the following environment variables to your `.env` file:
+Add your provider credentials to `config/services.php`:
+
+### Bunny CDN (default)
+
+```php
+// config/services.php
+'bunny' => [
+    'api_key' => env('BUNNY_API_KEY'),
+],
+```
 
 ```env
-BUNNY_PURGE_KEY=your-bunny-api-key
+CDN_PURGE_PROVIDER=bunny
+BUNNY_API_KEY=your-bunny-api-key
 ```
 
 ## Usage
 
-The package works automatically. It listens to Statamic's URL invalidation events and purges the corresponding URLs from your Bunny CDN cache whenever content changes.
-
-## Alternative Endpoints
-
-If you're using a custom cache purging endpoint instead of the default Bunny CDN API, you can configure the package to use Bearer token authentication:
-
-```env
-BUNNY_PURGE_API_URL=https://your-custom-endpoint.com/purge
-BUNNY_PURGE_AUTH_TYPE=bearer
-```
-
-This changes the `Authorization` header from `AccessKey: {key}` to `Bearer {key}`.
+The package works automatically. It listens to Statamic's URL invalidation events and purges the corresponding URLs from your CDN cache whenever content changes.
 
 ## Testing
 
