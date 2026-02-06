@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.1](https://github.com/jorisnoo/statamic-bunny-purge/releases/tag/v0.2.1) (2026-02-06)
+
+### Features
+
+- add isEnabled check and skip event registration when API key is not configured ([e0c76e1](https://github.com/jorisnoo/statamic-bunny-purge/commit/e0c76e10f14af317e92a50729d8c1b1e73ae953b))
+
+### Bug Fixes
+
+- make PurgeAllOnStaticCacheCleared implement ShouldBeUnique to prevent duplicate queue jobs ([b94bd1a](https://github.com/jorisnoo/statamic-bunny-purge/commit/b94bd1ad53f6500b9143bbac7b541c89c591b9a2))
+
+### Code Refactoring
+
+- check API key via config instead of instantiating CdnPurgeService and add service provider tests ([8c18867](https://github.com/jorisnoo/statamic-bunny-purge/commit/8c18867f5c42abdab893e559660510a3ff7eb4a7))
+- replace BunnyPurgeService with provider-based CdnPurgeService supporting multiple CDN providers ([ec1ddd0](https://github.com/jorisnoo/statamic-bunny-purge/commit/ec1ddd078b831fe30a0f6acb85ef8e766d7d57e3))
+
+### Build System
+
+- fix PHPStan configuration ([4def46a](https://github.com/jorisnoo/statamic-bunny-purge/commit/4def46a963b7c8b25a3335e9be3b012e627f4fab))
 ## [0.2.0](https://github.com/jorisnoo/statamic-bunny-purge/releases/tag/v0.2.0) (2026-02-06)
 
 ### Features
