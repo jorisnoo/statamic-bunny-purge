@@ -4,6 +4,8 @@ namespace Noo\StatamicBunnyPurge;
 
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Statamic\Facades\Site;
+use Statamic\Sites\Site as StatamicSite;
 
 class CdnPurgeService
 {
@@ -13,14 +15,11 @@ class CdnPurgeService
 
     private string $authType;
 
-    private string $siteUrl;
-
     public function __construct()
     {
         $this->apiUrl = config('statamic-bunny-purge.api_url');
         $this->apiKey = config('statamic-bunny-purge.api_key');
         $this->authType = config('statamic-bunny-purge.auth_type', 'access_key');
-        $this->siteUrl = rtrim(config('statamic-bunny-purge.site_url'), '/');
     }
 
     public function isEnabled(): bool
@@ -35,7 +34,9 @@ class CdnPurgeService
 
     public function purgeAll(): bool
     {
-        return $this->sendPurgeRequest(["{$this->siteUrl}/*"]);
+        $urls = Site::all()->map(fn (StatamicSite $site) => rtrim($site->absoluteUrl(), '/') . '/*')->values()->all();
+
+        return $this->sendPurgeRequest($urls);
     }
 
     /** @param array<int, string> $urls */

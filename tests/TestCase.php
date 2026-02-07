@@ -28,6 +28,5 @@ class TestCase extends Orchestra
     {
         config()->set('database.default', 'testing');
         config()->set('statamic-bunny-purge.api_key', 'test-key');
-        config()->set('statamic-bunny-purge.site_url', 'https://example.com');
     }
 }

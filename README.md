@@ -38,7 +38,6 @@ return [
     'api_url' => env('CDN_PURGE_API_URL', 'https://api.bunny.net/purge'),
     'api_key' => env('CDN_PURGE_API_KEY'),
     'auth_type' => env('CDN_PURGE_AUTH_TYPE', 'access_key'),
-    'site_url' => env('CDN_PURGE_SITE_URL', env('APP_URL')),
 ];
 ```
 
@@ -47,7 +46,6 @@ return [
 | `api_url` | The CDN purge API endpoint | `https://api.bunny.net/purge` |
 | `api_key` | Your CDN API key | — |
 | `auth_type` | Auth header style: `access_key` or `bearer` | `access_key` |
-| `site_url` | The site URL used when purging all cache | `APP_URL` |
 
 ### Using a custom CDN
 
