@@ -34,7 +34,7 @@ class CdnPurgeService
 
     public function purgeAll(): bool
     {
-        $urls = Site::all()->map(fn (StatamicSite $site) => rtrim($site->absoluteUrl(), '/') . '/*')->values()->all();
+        $urls = Site::all()->map(fn (StatamicSite $site) => rtrim($site->absoluteUrl(), '/').'/*')->values()->all();
 
         return $this->sendPurgeRequest($urls);
     }
