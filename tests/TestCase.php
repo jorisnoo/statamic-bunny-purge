@@ -27,8 +27,7 @@ class TestCase extends Orchestra
     public function getEnvironmentSetUp($app)
     {
         config()->set('database.default', 'testing');
-        config()->set('statamic-bunny-purge.provider', 'bunny');
+        config()->set('statamic-bunny-purge.api_key', 'test-key');
         config()->set('statamic-bunny-purge.site_url', 'https://example.com');
-        config()->set('services.bunny.api_key', 'test-key');
     }
 }

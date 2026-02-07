@@ -23,9 +23,7 @@ class StatamicBunnyPurgeServiceProvider extends PackageServiceProvider
     {
         $this->app->singleton(CdnPurgeService::class);
 
-        $providerName = config('statamic-bunny-purge.provider', 'bunny');
-
-        if (! filled(config("services.{$providerName}.api_key"))) {
+        if (! filled(config('statamic-bunny-purge.api_key'))) {
             return;
         }
 

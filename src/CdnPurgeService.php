@@ -4,23 +4,22 @@ namespace Noo\StatamicBunnyPurge;
 
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Noo\StatamicBunnyPurge\Enums\CdnProvider;
 
 class CdnPurgeService
 {
-    private CdnProvider $provider;
+    private string $apiUrl;
 
     private ?string $apiKey;
+
+    private string $authType;
 
     private string $siteUrl;
 
     public function __construct()
     {
-        $this->provider = CdnProvider::from(config('statamic-bunny-purge.provider'));
-
-        $providerName = $this->provider->value;
-
-        $this->apiKey = config("services.{$providerName}.api_key");
+        $this->apiUrl = config('statamic-bunny-purge.api_url');
+        $this->apiKey = config('statamic-bunny-purge.api_key');
+        $this->authType = config('statamic-bunny-purge.auth_type', 'access_key');
         $this->siteUrl = rtrim(config('statamic-bunny-purge.site_url'), '/');
     }
 
@@ -48,8 +47,8 @@ class CdnPurgeService
             return false;
         }
 
-        $response = Http::withHeaders($this->provider->authHeaders($this->apiKey))
-            ->post($this->provider->apiUrl(), ['urls' => $urls]);
+        $response = Http::withHeaders($this->authHeaders($this->apiKey))
+            ->post($this->apiUrl, ['urls' => $urls]);
 
         if ($response->failed()) {
             Log::error('CDN purge request failed', [
@@ -64,5 +63,14 @@ class CdnPurgeService
         Log::info('CDN purge request successful', ['urls' => $urls]);
 
         return true;
+    }
+
+    /** @return array<string, string> */
+    private function authHeaders(string $apiKey): array
+    {
+        return match ($this->authType) {
+            'bearer' => ['Authorization' => "Bearer {$apiKey}"],
+            default => ['AccessKey' => $apiKey],
+        };
     }
 }
