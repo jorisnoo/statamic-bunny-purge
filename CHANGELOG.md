@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.2](https://github.com/jorisnoo/statamic-bunny-purge/releases/tag/v0.2.2) (2026-02-07)
+
+### Code Refactoring
+
+- use Statamic site URLs for purge-all instead of dedicated site_url config ([eb5726b](https://github.com/jorisnoo/statamic-bunny-purge/commit/eb5726b3ea9c9eb11b9eb3d274679caca0f1170d))
+- replace provider enum with config-driven CDN purge supporting custom API URL and auth type ([887ffb8](https://github.com/jorisnoo/statamic-bunny-purge/commit/887ffb8a3f5d965f38ca9424221be46a8a9345d3))
 ## [0.2.1](https://github.com/jorisnoo/statamic-bunny-purge/releases/tag/v0.2.1) (2026-02-06)
 
 ### Features
