@@ -20,7 +20,7 @@
         "php": "^8.3",
         "illuminate/contracts": "^12.6",
         "spatie/laravel-package-tools": "^1.16",
-        "statamic/cms": "^5.0"
+        "statamic/cms": "^6.2"
     },
     "require-dev": {
         "laravel/pint": "^1.14",
