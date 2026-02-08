@@ -6,7 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### Bug Fixes
 
-- drop Laravel 11 support and make URL purge listener unique per URL ([48c1beb](https://github.com/jorisnoo/statamic-bunny-purge/commit/48c1beb9d0b9126a9c0a8c15efebf85d3d066bf7))
+- drop Laravel 11 support and make URL purge listener unique per URL ([4b0f9f5](https://github.com/jorisnoo/statamic-bunny-purge/commit/4b0f9f51205d289b421f45925fb39181d59ed024))
 ## [0.2.2](https://github.com/jorisnoo/statamic-bunny-purge/releases/tag/v0.2.2) (2026-02-07)
 
 ### Code Refactoring
