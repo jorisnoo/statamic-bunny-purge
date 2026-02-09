@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.2](https://github.com/jorisnoo/statamic-bunny-purge/releases/tag/v0.3.2) (2026-02-09)
+
+### Bug Fixes
+
+- purge both exact base URL and wildcard per site when purging all ([514e1fa](https://github.com/jorisnoo/statamic-bunny-purge/commit/514e1faf59075b06e8fd0aca934c46114d02dda5))
+- gh actions tests ([62f19fc](https://github.com/jorisnoo/statamic-bunny-purge/commit/62f19fcd4f7e5866ef379ea5af56c4010622367d))
 ## [0.3.1](https://github.com/jorisnoo/statamic-bunny-purge/releases/tag/v0.3.1) (2026-02-08)
 
 ### Bug Fixes
