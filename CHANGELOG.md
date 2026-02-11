@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.0](https://github.com/jorisnoo/statamic-bunny-purge/releases/tag/v0.4.0) (2026-02-11)
+
+### Chores
+
+- add Statamic v6 support in composer.json ([6ce1983](https://github.com/jorisnoo/statamic-bunny-purge/commit/6ce1983b59c58a05cf23fc4a09b85caf6493a87d))
 ## [0.3.2](https://github.com/jorisnoo/statamic-bunny-purge/releases/tag/v0.3.2) (2026-02-09)
 
 ### Bug Fixes
