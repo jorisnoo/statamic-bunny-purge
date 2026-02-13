@@ -28,7 +28,7 @@ That's it — Bunny CDN is the default and works without any further configurati
 You can publish the config file with:
 
 ```bash
-php artisan vendor:publish --tag="statamic-bunny-purge-config"
+php artisan vendor:publish --tag="statamic-bunny-purge"
 ```
 
 This is the contents of the published config file:

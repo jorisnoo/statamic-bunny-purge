@@ -15,7 +15,7 @@ it('registers event listeners when api key is configured', function () {
 });
 
 it('does not register event listeners when api key is missing', function () {
-    config()->set('statamic-bunny-purge.api_key', null);
+    config()->set('statamic.bunny-purge.api_key', null);
 
     $this->app->getProviders(\Noo\StatamicBunnyPurge\StatamicBunnyPurgeServiceProvider::class);
 

@@ -17,9 +17,9 @@ class CdnPurgeService
 
     public function __construct()
     {
-        $this->apiUrl = config('statamic-bunny-purge.api_url');
-        $this->apiKey = config('statamic-bunny-purge.api_key');
-        $this->authType = config('statamic-bunny-purge.auth_type', 'access_key');
+        $this->apiUrl = config('statamic.bunny-purge.api_url');
+        $this->apiKey = config('statamic.bunny-purge.api_key');
+        $this->authType = config('statamic.bunny-purge.auth_type', 'access_key');
     }
 
     public function isEnabled(): bool

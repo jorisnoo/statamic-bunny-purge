@@ -14,16 +14,29 @@ class StatamicBunnyPurgeServiceProvider extends PackageServiceProvider
 {
     public function configurePackage(Package $package): void
     {
-        $package
-            ->name('statamic-bunny-purge')
-            ->hasConfigFile();
+        $package->name('statamic-bunny-purge');
+    }
+
+    public function register(): static
+    {
+        parent::register();
+
+        $this->mergeConfigFrom(__DIR__.'/../config/bunny-purge.php', 'statamic.bunny-purge');
+
+        return $this;
     }
 
     public function packageBooted(): void
     {
+        if ($this->app->runningInConsole()) {
+            $this->publishes([
+                __DIR__.'/../config/bunny-purge.php' => config_path('statamic/bunny-purge.php'),
+            ], 'statamic-bunny-purge');
+        }
+
         $this->app->singleton(CdnPurgeService::class);
 
-        if (! filled(config('statamic-bunny-purge.api_key'))) {
+        if (! filled(config('statamic.bunny-purge.api_key'))) {
             return;
         }
 
