@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.0](https://github.com/jorisnoo/statamic-bunny-purge/releases/tag/v0.5.0) (2026-02-13)
+
+### Code Refactoring
+
+- move config to statamic.bunny-purge namespace and publish under statamic directory ([133580e](https://github.com/jorisnoo/statamic-bunny-purge/commit/133580e304a66f684ded5f0c1376ce10a3ad98c4))
 ## [0.4.0](https://github.com/jorisnoo/statamic-bunny-purge/releases/tag/v0.4.0) (2026-02-11)
 
 ### Chores
