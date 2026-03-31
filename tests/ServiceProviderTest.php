@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Event;
+use Statamic\Events\AssetReuploaded;
 use Statamic\Events\StaticCacheCleared;
 use Statamic\Events\UrlInvalidated;
 
@@ -10,6 +11,10 @@ it('registers event listeners when api key is configured', function () {
     expect($listeners)->not->toBeEmpty();
 
     $listeners = Event::getListeners(UrlInvalidated::class);
+
+    expect($listeners)->not->toBeEmpty();
+
+    $listeners = Event::getListeners(AssetReuploaded::class);
 
     expect($listeners)->not->toBeEmpty();
 });

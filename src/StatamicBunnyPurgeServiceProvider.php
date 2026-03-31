@@ -4,9 +4,11 @@ namespace Noo\StatamicBunnyPurge;
 
 use Illuminate\Support\Facades\Event;
 use Noo\StatamicBunnyPurge\Listeners\PurgeAllOnStaticCacheCleared;
+use Noo\StatamicBunnyPurge\Listeners\PurgeUrlOnAssetReuploaded;
 use Noo\StatamicBunnyPurge\Listeners\PurgeUrlOnUrlInvalidated;
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
+use Statamic\Events\AssetReuploaded;
 use Statamic\Events\StaticCacheCleared;
 use Statamic\Events\UrlInvalidated;
 
@@ -42,5 +44,6 @@ class StatamicBunnyPurgeServiceProvider extends PackageServiceProvider
 
         Event::listen(StaticCacheCleared::class, PurgeAllOnStaticCacheCleared::class);
         Event::listen(UrlInvalidated::class, PurgeUrlOnUrlInvalidated::class);
+        Event::listen(AssetReuploaded::class, PurgeUrlOnAssetReuploaded::class);
     }
 }
