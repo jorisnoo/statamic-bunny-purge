@@ -31,7 +31,7 @@ class StatamicBunnyPurgeServiceProvider extends PackageServiceProvider
         if ($this->app->runningInConsole()) {
             $this->publishes([
                 __DIR__.'/../config/bunny-purge.php' => config_path('statamic/bunny-purge.php'),
-            ], 'statamic-bunny-purge');
+            ], 'bunny-purge');
         }
 
         $this->app->singleton(CdnPurgeService::class);
