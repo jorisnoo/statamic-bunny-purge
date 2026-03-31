@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.1](https://github.com/jorisnoo/statamic-bunny-purge/releases/tag/v0.5.1) (2026-03-31)
+
+### Features
+
+- purge CDN when assets are reuploaded ([11a5d9b](https://github.com/jorisnoo/statamic-bunny-purge/commit/11a5d9ba422a67366478e02d89339e1b5288c6ae))
+
+### Chores
+
+- remove workflows and expand dependency compatibility ([8385f13](https://github.com/jorisnoo/statamic-bunny-purge/commit/8385f13d116bcab1ca0ca5b0a6fc8c8ff61ae11b))
 ## [0.5.0](https://github.com/jorisnoo/statamic-bunny-purge/releases/tag/v0.5.0) (2026-02-13)
 
 ### Code Refactoring
