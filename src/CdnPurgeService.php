@@ -6,9 +6,12 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Statamic\Facades\Site;
 use Statamic\Sites\Site as StatamicSite;
+use Throwable;
 
 class CdnPurgeService
 {
+    private const URL_BATCH_LIMIT = 100;
+
     private string $apiUrl;
 
     private ?string $apiKey;
@@ -52,22 +55,37 @@ class CdnPurgeService
             return false;
         }
 
-        $response = Http::withHeaders($this->authHeaders($this->apiKey))
-            ->post($this->apiUrl, ['urls' => $urls]);
+        $allSucceeded = true;
 
-        if ($response->failed()) {
-            Log::error('CDN purge request failed', [
-                'urls' => $urls,
-                'status' => $response->status(),
-                'body' => $response->body(),
-            ]);
+        foreach (array_chunk($urls, self::URL_BATCH_LIMIT) as $batch) {
+            try {
+                $response = Http::withHeaders($this->authHeaders($this->apiKey))
+                    ->post($this->apiUrl, ['urls' => $batch]);
+            } catch (Throwable $e) {
+                Log::error('CDN purge request threw', [
+                    'urls' => $batch,
+                    'exception' => $e->getMessage(),
+                ]);
+                $allSucceeded = false;
 
-            return false;
+                continue;
+            }
+
+            if ($response->failed()) {
+                Log::error('CDN purge request failed', [
+                    'urls' => $batch,
+                    'status' => $response->status(),
+                    'body' => $response->body(),
+                ]);
+                $allSucceeded = false;
+
+                continue;
+            }
+
+            Log::info('CDN purge request successful', ['urls' => $batch]);
         }
 
-        Log::info('CDN purge request successful', ['urls' => $urls]);
-
-        return true;
+        return $allSucceeded;
     }
 
     /** @return array<string, string> */
