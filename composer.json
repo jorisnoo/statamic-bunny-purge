@@ -2,9 +2,13 @@
     "name": "jorisnoo/statamic-bunny-purge",
     "description": "Automatically purge Bunny CDN cache when Statamic content changes.",
     "keywords": [
-        "Joris Noordermeer",
-        "laravel",
-        "statamic-bunny-purge"
+        "statamic",
+        "statamic-addon",
+        "bunny",
+        "bunny.net",
+        "cdn",
+        "purge",
+        "cache"
     ],
     "homepage": "https://github.com/jorisnoo/statamic-bunny-purge",
     "license": "MIT",
@@ -12,8 +16,7 @@
         {
             "name": "Joris Noordermeer",
             "email": "contact@noordermeer.ch",
-            "homepage": "https://github.com/jorisnoo",
-            "role": "Developer"
+            "homepage": "https://github.com/jorisnoo"
         }
     ],
     "require": {
