@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.2](https://github.com/jorisnoo/statamic-bunny-purge/releases/tag/v0.5.2) (2026-07-09)
+
+### Features
+
+- add CDN purge on asset save/delete and implement URL batching ([723fe88](https://github.com/jorisnoo/statamic-bunny-purge/commit/723fe88887292107bed228c34438998a398393cf))
+
+### Bug Fixes
+
+- implement lock expiration to prevent orphaned unique locks ([bc66f4a](https://github.com/jorisnoo/statamic-bunny-purge/commit/bc66f4a1c9c0d1eb3e24f2d3007a4fb527993779))
+
+### Build System
+
+- **deps:** bump actions/checkout from 6 to 7 ([2e244d8](https://github.com/jorisnoo/statamic-bunny-purge/commit/2e244d80536bdcfadcf28b94e1c50bd83cc1013e))
+
+### Chores
+
+- rename CI workflow to tests.yml, tidy metadata, add justfile ([2ddb6ee](https://github.com/jorisnoo/statamic-bunny-purge/commit/2ddb6eed556c3ffc8c18a0a044584f4b2f84839a))
 ## [0.5.1](https://github.com/jorisnoo/statamic-bunny-purge/releases/tag/v0.5.1) (2026-03-31)
 
 ### Features
