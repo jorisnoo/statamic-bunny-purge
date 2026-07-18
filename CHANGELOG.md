@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.3](https://github.com/jorisnoo/statamic-bunny-purge/releases/tag/v0.5.3) (2026-07-18)
+
+### Features
+
+- add toggle to disable site-wide purge on static cache clear ([ed9b611](https://github.com/jorisnoo/statamic-bunny-purge/commit/ed9b611337377e4c882c60b483f0ddc7f9746e66))
 ## [0.5.2](https://github.com/jorisnoo/statamic-bunny-purge/releases/tag/v0.5.2) (2026-07-09)
 
 ### Features
