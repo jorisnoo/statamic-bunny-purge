@@ -38,6 +38,7 @@ return [
     'api_url' => env('CDN_PURGE_API_URL', 'https://api.bunny.net/purge'),
     'api_key' => env('CDN_PURGE_API_KEY'),
     'auth_type' => env('CDN_PURGE_AUTH_TYPE', 'access_key'),
+    'purge_all_on_static_cache_cleared' => env('CDN_PURGE_ALL_ON_STATIC_CACHE_CLEARED', true),
 ];
 ```
 
@@ -46,6 +47,9 @@ return [
 | `api_url` | The CDN purge API endpoint | `https://api.bunny.net/purge` |
 | `api_key` | Your CDN API key | — |
 | `auth_type` | Auth header style: `access_key` or `bearer` | `access_key` |
+| `purge_all_on_static_cache_cleared` | Purge the whole site when Statamic's static cache is cleared (e.g. on deploy) | `true` |
+
+Set `CDN_PURGE_ALL_ON_STATIC_CACHE_CLEARED=false` when your deploy already flushes the CDN pull zone, so the static-cache-clear event doesn't trigger a redundant site-wide purge. Per-URL purges on content and asset changes are unaffected.
 
 ### Using a custom CDN
 

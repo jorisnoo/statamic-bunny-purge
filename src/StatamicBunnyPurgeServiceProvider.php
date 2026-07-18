@@ -46,7 +46,10 @@ class StatamicBunnyPurgeServiceProvider extends PackageServiceProvider
             return;
         }
 
-        Event::listen(StaticCacheCleared::class, PurgeAllOnStaticCacheCleared::class);
+        if (config('statamic.bunny-purge.purge_all_on_static_cache_cleared', true)) {
+            Event::listen(StaticCacheCleared::class, PurgeAllOnStaticCacheCleared::class);
+        }
+
         Event::listen(UrlInvalidated::class, PurgeUrlOnUrlInvalidated::class);
         Event::listen(AssetReuploaded::class, PurgeUrlOnAssetReuploaded::class);
         Event::listen(AssetSaved::class, PurgeUrlOnAssetSaved::class);
