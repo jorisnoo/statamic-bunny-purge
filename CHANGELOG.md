@@ -2,12 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.5.3](https://github.com/jorisnoo/statamic-bunny-purge/releases/tag/v0.5.3) (2026-07-18)
+## [0.5.3](https://github.com/jorisnoo/statamic-bunny-purge/releases/tag/0.5.3) (2026-07-18)
 
 ### Features
 
 - add toggle to disable site-wide purge on static cache clear ([ed9b611](https://github.com/jorisnoo/statamic-bunny-purge/commit/ed9b611337377e4c882c60b483f0ddc7f9746e66))
-## [0.5.2](https://github.com/jorisnoo/statamic-bunny-purge/releases/tag/v0.5.2) (2026-07-09)
+## [0.5.2](https://github.com/jorisnoo/statamic-bunny-purge/releases/tag/0.5.2) (2026-07-09)
 
 ### Features
 
@@ -24,7 +24,7 @@ All notable changes to this project will be documented in this file.
 ### Chores
 
 - rename CI workflow to tests.yml, tidy metadata, add justfile ([2ddb6ee](https://github.com/jorisnoo/statamic-bunny-purge/commit/2ddb6eed556c3ffc8c18a0a044584f4b2f84839a))
-## [0.5.1](https://github.com/jorisnoo/statamic-bunny-purge/releases/tag/v0.5.1) (2026-03-31)
+## [0.5.1](https://github.com/jorisnoo/statamic-bunny-purge/releases/tag/0.5.1) (2026-03-31)
 
 ### Features
 
@@ -33,23 +33,23 @@ All notable changes to this project will be documented in this file.
 ### Chores
 
 - remove workflows and expand dependency compatibility ([8385f13](https://github.com/jorisnoo/statamic-bunny-purge/commit/8385f13d116bcab1ca0ca5b0a6fc8c8ff61ae11b))
-## [0.5.0](https://github.com/jorisnoo/statamic-bunny-purge/releases/tag/v0.5.0) (2026-02-13)
+## [0.5.0](https://github.com/jorisnoo/statamic-bunny-purge/releases/tag/0.5.0) (2026-02-13)
 
 ### Code Refactoring
 
 - move config to statamic.bunny-purge namespace and publish under statamic directory ([133580e](https://github.com/jorisnoo/statamic-bunny-purge/commit/133580e304a66f684ded5f0c1376ce10a3ad98c4))
-## [0.4.0](https://github.com/jorisnoo/statamic-bunny-purge/releases/tag/v0.4.0) (2026-02-11)
+## [0.4.0](https://github.com/jorisnoo/statamic-bunny-purge/releases/tag/0.4.0) (2026-02-11)
 
 ### Chores
 
 - add Statamic v6 support in composer.json ([6ce1983](https://github.com/jorisnoo/statamic-bunny-purge/commit/6ce1983b59c58a05cf23fc4a09b85caf6493a87d))
-## [0.3.2](https://github.com/jorisnoo/statamic-bunny-purge/releases/tag/v0.3.2) (2026-02-09)
+## [0.3.2](https://github.com/jorisnoo/statamic-bunny-purge/releases/tag/0.3.2) (2026-02-09)
 
 ### Bug Fixes
 
 - purge both exact base URL and wildcard per site when purging all ([514e1fa](https://github.com/jorisnoo/statamic-bunny-purge/commit/514e1faf59075b06e8fd0aca934c46114d02dda5))
 - gh actions tests ([62f19fc](https://github.com/jorisnoo/statamic-bunny-purge/commit/62f19fcd4f7e5866ef379ea5af56c4010622367d))
-## [0.3.1](https://github.com/jorisnoo/statamic-bunny-purge/releases/tag/v0.3.1) (2026-02-08)
+## [0.3.1](https://github.com/jorisnoo/statamic-bunny-purge/releases/tag/0.3.1) (2026-02-08)
 
 ### Bug Fixes
 
@@ -58,18 +58,18 @@ All notable changes to this project will be documented in this file.
 ### Code Refactoring
 
 - extract URL purge logic into a dedicated queued job ([57478a9](https://github.com/jorisnoo/statamic-bunny-purge/commit/57478a9ae1019b002dce2acea05cd48ad2c9a9b0))
-## [0.3.0](https://github.com/jorisnoo/statamic-bunny-purge/releases/tag/v0.3.0) (2026-02-08)
+## [0.3.0](https://github.com/jorisnoo/statamic-bunny-purge/releases/tag/0.3.0) (2026-02-08)
 
 ### Bug Fixes
 
 - drop Laravel 11 support and make URL purge listener unique per URL ([4b0f9f5](https://github.com/jorisnoo/statamic-bunny-purge/commit/4b0f9f51205d289b421f45925fb39181d59ed024))
-## [0.2.2](https://github.com/jorisnoo/statamic-bunny-purge/releases/tag/v0.2.2) (2026-02-07)
+## [0.2.2](https://github.com/jorisnoo/statamic-bunny-purge/releases/tag/0.2.2) (2026-02-07)
 
 ### Code Refactoring
 
 - use Statamic site URLs for purge-all instead of dedicated site_url config ([eb5726b](https://github.com/jorisnoo/statamic-bunny-purge/commit/eb5726b3ea9c9eb11b9eb3d274679caca0f1170d))
 - replace provider enum with config-driven CDN purge supporting custom API URL and auth type ([887ffb8](https://github.com/jorisnoo/statamic-bunny-purge/commit/887ffb8a3f5d965f38ca9424221be46a8a9345d3))
-## [0.2.1](https://github.com/jorisnoo/statamic-bunny-purge/releases/tag/v0.2.1) (2026-02-06)
+## [0.2.1](https://github.com/jorisnoo/statamic-bunny-purge/releases/tag/0.2.1) (2026-02-06)
 
 ### Features
 
@@ -87,7 +87,7 @@ All notable changes to this project will be documented in this file.
 ### Build System
 
 - fix PHPStan configuration ([4def46a](https://github.com/jorisnoo/statamic-bunny-purge/commit/4def46a963b7c8b25a3335e9be3b012e627f4fab))
-## [0.2.0](https://github.com/jorisnoo/statamic-bunny-purge/releases/tag/v0.2.0) (2026-02-06)
+## [0.2.0](https://github.com/jorisnoo/statamic-bunny-purge/releases/tag/0.2.0) (2026-02-06)
 
 ### Features
 
@@ -104,10 +104,10 @@ All notable changes to this project will be documented in this file.
 ### Build System
 
 - fix PHPStan configuration ([4def46a](https://github.com/jorisnoo/statamic-bunny-purge/commit/4def46a963b7c8b25a3335e9be3b012e627f4fab))
-## [0.1.1](https://github.com/jorisnoo/statamic-bunny-purge/releases/tag/v0.1.1) (2026-01-28)
+## [0.1.1](https://github.com/jorisnoo/statamic-bunny-purge/releases/tag/0.1.1) (2026-01-28)
 
 ### Build System
 
 - fix deps ([2247176](https://github.com/jorisnoo/statamic-bunny-purge/commit/2247176de6edfcc4ad1e067ef086c82ba846a761))
 - add release workflow ([2b17112](https://github.com/jorisnoo/statamic-bunny-purge/commit/2b171121d5e2a5e84c6bba0c3181b710f2af1574))
-## [0.1.0](https://github.com/jorisnoo/statamic-bunny-purge/releases/tag/v0.1.0) (2026-01-28)
+## [0.1.0](https://github.com/jorisnoo/statamic-bunny-purge/releases/tag/0.1.0) (2026-01-28)
