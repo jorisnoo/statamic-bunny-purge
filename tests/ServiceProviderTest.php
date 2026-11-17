@@ -48,10 +48,10 @@ it('does not purge the whole site on static cache clear when the toggle is disab
 it('does not register event listeners when api key is missing', function () {
     config()->set('statamic.bunny-purge.api_key', null);
 
-    $this->app->getProviders(\Noo\StatamicBunnyPurge\StatamicBunnyPurgeServiceProvider::class);
+    $this->app->getProviders(StatamicBunnyPurgeServiceProvider::class);
 
     // Re-register the provider to test with missing config
-    $provider = new \Noo\StatamicBunnyPurge\StatamicBunnyPurgeServiceProvider($this->app);
+    $provider = new StatamicBunnyPurgeServiceProvider($this->app);
     $provider->register();
     $provider->boot();
 
