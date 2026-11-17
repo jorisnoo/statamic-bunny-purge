@@ -65,6 +65,24 @@ CDN_PURGE_AUTH_TYPE=bearer
 
 The package works automatically. It listens to Statamic's URL invalidation events and purges the corresponding URLs from your CDN cache whenever content changes.
 
+### How purges are sent
+
+- Requests carry at most 50 URLs, and exact and wildcard URLs are never sent together. Bunny rate-limits the two types separately, and wildcard purges (a URL that contains `*` or ends with `/`) have a much smaller allowance. Wildcard batches hold at most 15 URLs and are spaced 30 seconds apart; exact batches are spaced 10 seconds apart.
+- A purge-all sends each site's base URL, then `<base URL>/*`. A wildcard covered by another site's wildcard (for example `/fr/*` under `/*`) is left out.
+
+### Failures and retries
+
+Run a queue worker (any driver other than `sync`). With a worker:
+
+- A rate-limited purge (HTTP 429) is released back onto the queue. It waits for the time the CDN asks for, but at least as long as the rate limit needs to refill (10 seconds for exact URLs, 30 seconds for wildcards) and at most 5 minutes.
+- Server errors and connection failures throw, so the queue retries them with increasing backoff.
+- Jobs keep retrying for up to an hour, independent of the worker's `--tries`, and then land in `failed_jobs`.
+- A purge the CDN rejects (another 4xx, such as a bad API key) is not retried. The job fails right away so it shows up in `failed_jobs`.
+
+With the `sync` queue driver, purges run inline and cannot be released or retried. Failures are logged and the request that triggered the purge still succeeds. Requests are sent back to back, without the spacing above.
+
+`CdnPurgeService::purgeUrl()` and `purgeAll()` still send immediately and return `false` on failure. They split requests by type but do not space or retry them.
+
 ## Testing
 
 ```bash

@@ -9,10 +9,11 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Noo\StatamicBunnyPurge\CdnPurgeService;
+use Noo\StatamicBunnyPurge\Jobs\Concerns\SendsPurgeRequests;
 
 class PurgeUrlJob implements ShouldBeUniqueUntilProcessing, ShouldQueue
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+    use Dispatchable, InteractsWithQueue, Queueable, SendsPurgeRequests, SerializesModels;
 
     public function __construct(
         public readonly string $url
@@ -34,6 +35,6 @@ class PurgeUrlJob implements ShouldBeUniqueUntilProcessing, ShouldQueue
 
     public function handle(CdnPurgeService $cdnPurgeService): void
     {
-        $cdnPurgeService->purgeUrl($this->url);
+        $this->purge($cdnPurgeService, [$this->url]);
     }
 }

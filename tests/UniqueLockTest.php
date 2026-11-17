@@ -3,26 +3,22 @@
 use Carbon\Carbon;
 use Illuminate\Bus\UniqueLock;
 use Illuminate\Contracts\Queue\ShouldBeUniqueUntilProcessing;
-use Illuminate\Events\CallQueuedListener;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Queue;
+use Noo\StatamicBunnyPurge\Jobs\PurgeAllJob;
 use Noo\StatamicBunnyPurge\Jobs\PurgeUrlJob;
-use Noo\StatamicBunnyPurge\Listeners\PurgeAllOnStaticCacheCleared;
+use Noo\StatamicBunnyPurge\Jobs\PurgeUrlsJob;
 use Statamic\Events\StaticCacheCleared;
 
 afterEach(fn () => Carbon::setTestNow());
-
-function purgeAllListener(): PurgeAllOnStaticCacheCleared
-{
-    return (new ReflectionClass(PurgeAllOnStaticCacheCleared::class))->newInstanceWithoutConstructor();
-}
 
 it('releases the purge job lock once processing starts', function () {
     expect(new PurgeUrlJob('https://example.com/opera'))->toBeInstanceOf(ShouldBeUniqueUntilProcessing::class);
 });
 
-it('releases the purge-all lock once processing starts', function () {
-    expect(purgeAllListener())->toBeInstanceOf(ShouldBeUniqueUntilProcessing::class);
+it('releases the purge-all and batch locks once processing starts', function () {
+    expect(new PurgeAllJob)->toBeInstanceOf(ShouldBeUniqueUntilProcessing::class)
+        ->and(new PurgeUrlsJob(['https://example.com/opera']))->toBeInstanceOf(ShouldBeUniqueUntilProcessing::class);
 });
 
 it('lets a leaked purge job lock expire instead of blocking the url forever', function () {
@@ -48,11 +44,12 @@ it('lets a leaked purge job lock expire instead of blocking the url forever', fu
 it('lets a leaked purge-all lock expire instead of blocking every site-wide purge', function () {
     Queue::fake();
 
-    $ttl = purgeAllListener()->uniqueFor();
+    $job = new PurgeAllJob;
+    $ttl = $job->uniqueFor();
 
     expect($ttl)->toBeGreaterThan(0);
 
-    Cache::lock('laravel_unique_job:'.PurgeAllOnStaticCacheCleared::class.':', $ttl)->get();
+    Cache::lock(UniqueLock::getKey($job), $ttl)->get();
 
     event(new StaticCacheCleared);
     Queue::assertNothingPushed();
@@ -60,10 +57,17 @@ it('lets a leaked purge-all lock expire instead of blocking every site-wide purg
     Carbon::setTestNow(Carbon::now()->addSeconds($ttl + 1));
 
     event(new StaticCacheCleared);
-    Queue::assertPushed(
-        CallQueuedListener::class,
-        fn (CallQueuedListener $job) => $job->class === PurgeAllOnStaticCacheCleared::class,
-    );
+    Queue::assertPushed(PurgeAllJob::class, 1);
+});
+
+it('collapses repeated batches of the same urls', function () {
+    Queue::fake();
+
+    PurgeUrlsJob::dispatch(['https://example.com/opera', 'https://example.com/ballet']);
+    PurgeUrlsJob::dispatch(['https://example.com/ballet', 'https://example.com/opera']);
+    PurgeUrlsJob::dispatch(['https://example.com/opera']);
+
+    Queue::assertPushed(PurgeUrlsJob::class, 2);
 });
 
 it('locks each url independently', function () {

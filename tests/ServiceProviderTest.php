@@ -1,11 +1,12 @@
 <?php
 
-use Illuminate\Events\CallQueuedListener;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Queue;
-use Noo\StatamicBunnyPurge\Listeners\PurgeAllOnStaticCacheCleared;
+use Noo\StatamicBunnyPurge\Jobs\PurgeAllJob;
 use Noo\StatamicBunnyPurge\StatamicBunnyPurgeServiceProvider;
+use Statamic\Events\AssetDeleted;
 use Statamic\Events\AssetReuploaded;
+use Statamic\Events\AssetSaved;
 use Statamic\Events\StaticCacheCleared;
 use Statamic\Events\UrlInvalidated;
 
@@ -36,26 +37,26 @@ it('does not purge the whole site on static cache clear when the toggle is disab
 
     event(new StaticCacheCleared);
 
-    Queue::assertNotPushed(
-        CallQueuedListener::class,
-        fn (CallQueuedListener $job) => $job->class === PurgeAllOnStaticCacheCleared::class,
-    );
+    Queue::assertNotPushed(PurgeAllJob::class);
 
     // The per-URL listeners are unaffected by the toggle.
     expect(Event::getListeners(UrlInvalidated::class))->not->toBeEmpty();
 });
 
 it('does not register event listeners when api key is missing', function () {
+    $events = [StaticCacheCleared::class, UrlInvalidated::class, AssetReuploaded::class, AssetSaved::class, AssetDeleted::class];
+
+    foreach ($events as $event) {
+        Event::forget($event);
+    }
+
     config()->set('statamic.bunny-purge.api_key', null);
 
-    $this->app->getProviders(StatamicBunnyPurgeServiceProvider::class);
-
-    // Re-register the provider to test with missing config
     $provider = new StatamicBunnyPurgeServiceProvider($this->app);
     $provider->register();
     $provider->boot();
 
-    // Since we can't easily clear listeners registered in the first boot,
-    // we verify the provider boots without throwing an exception
-    expect(true)->toBeTrue();
+    foreach ($events as $event) {
+        expect(app('events')->getRawListeners()[$event] ?? [])->toBeEmpty();
+    }
 });
