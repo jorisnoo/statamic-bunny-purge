@@ -67,6 +67,8 @@ The package works automatically. It listens to Statamic's URL invalidation event
 
 ### How purges are sent
 
+- The URLs Statamic invalidates for one change are purged together by one queued job, instead of one job per URL.
+- With `static_caching.invalidation.rules` set to `'all'`, Statamic flushes its whole static cache without firing an invalidation event. The package then purges every site, the same way it does when the static cache is cleared.
 - Requests carry at most 50 URLs, and exact and wildcard URLs are never sent together. Bunny rate-limits the two types separately, and wildcard purges (a URL that contains `*` or ends with `/`) have a much smaller allowance. Wildcard batches hold at most 15 URLs and are spaced 30 seconds apart; exact batches are spaced 10 seconds apart.
 - A purge-all sends each site's base URL, then `<base URL>/*`. A wildcard covered by another site's wildcard (for example `/fr/*` under `/*`) is left out.
 

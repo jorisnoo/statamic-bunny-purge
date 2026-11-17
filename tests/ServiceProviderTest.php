@@ -3,12 +3,14 @@
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Queue;
 use Noo\StatamicBunnyPurge\Jobs\PurgeAllJob;
+use Noo\StatamicBunnyPurge\PurgingInvalidator;
 use Noo\StatamicBunnyPurge\StatamicBunnyPurgeServiceProvider;
 use Statamic\Events\AssetDeleted;
 use Statamic\Events\AssetReuploaded;
 use Statamic\Events\AssetSaved;
 use Statamic\Events\StaticCacheCleared;
 use Statamic\Events\UrlInvalidated;
+use Statamic\StaticCaching\Invalidator;
 
 it('registers event listeners when api key is configured', function () {
     $listeners = Event::getListeners(StaticCacheCleared::class);
@@ -50,6 +52,8 @@ it('does not register event listeners when api key is missing', function () {
         Event::forget($event);
     }
 
+    $this->app->forgetExtenders(Invalidator::class);
+
     config()->set('statamic.bunny-purge.api_key', null);
 
     $provider = new StatamicBunnyPurgeServiceProvider($this->app);
@@ -59,4 +63,6 @@ it('does not register event listeners when api key is missing', function () {
     foreach ($events as $event) {
         expect(app('events')->getRawListeners()[$event] ?? [])->toBeEmpty();
     }
+
+    expect(app(Invalidator::class))->not->toBeInstanceOf(PurgingInvalidator::class);
 });

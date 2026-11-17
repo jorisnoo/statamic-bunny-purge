@@ -9,3 +9,9 @@ parameters:
     tmpDir: build/phpstan
     checkOctaneCompatibility: true
     checkModelProperties: true
+    ignoreErrors:
+        # Statamic 6's Invalidator interface declares refresh(); Statamic 5's does not.
+        -
+            identifier: function.alreadyNarrowedType
+            path: src/PurgingInvalidator.php
+            reportUnmatched: false

@@ -15,6 +15,7 @@ use Statamic\Events\AssetReuploaded;
 use Statamic\Events\AssetSaved;
 use Statamic\Events\StaticCacheCleared;
 use Statamic\Events\UrlInvalidated;
+use Statamic\StaticCaching\Invalidator;
 
 class StatamicBunnyPurgeServiceProvider extends PackageServiceProvider
 {
@@ -41,6 +42,7 @@ class StatamicBunnyPurgeServiceProvider extends PackageServiceProvider
         }
 
         $this->app->singleton(CdnPurgeService::class);
+        $this->app->singleton(UrlCollector::class);
 
         if (! filled(config('statamic.bunny-purge.api_key'))) {
             return;
@@ -49,6 +51,12 @@ class StatamicBunnyPurgeServiceProvider extends PackageServiceProvider
         if (config('statamic.bunny-purge.purge_all_on_static_cache_cleared', true)) {
             Event::listen(StaticCacheCleared::class, PurgeAllOnStaticCacheCleared::class);
         }
+
+        // Hook Statamic's invalidator so the URLs of one change are purged in
+        // batches, and so rules set to 'all' (which fire no event) still purge.
+        $this->app->extend(Invalidator::class, fn (Invalidator $invalidator, $app) => $invalidator instanceof PurgingInvalidator
+            ? $invalidator
+            : new PurgingInvalidator($invalidator, $app->make(UrlCollector::class)));
 
         Event::listen(UrlInvalidated::class, PurgeUrlOnUrlInvalidated::class);
         Event::listen(AssetReuploaded::class, PurgeUrlOnAssetReuploaded::class);
