@@ -1,6 +1,8 @@
 <?php
 
 use Illuminate\Http\Client\Request;
+use Illuminate\Queue\DeferredQueue;
+use Illuminate\Support\Defer\DeferredCallbackCollection;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use Noo\StatamicBunnyPurge\CdnPurgeService;
@@ -119,4 +121,44 @@ it('purges every site with the base urls first and the wildcards next', function
         ['https://example.com', 'https://example.com/fr'],
         ['https://example.com/*'],
     ]);
+});
+
+it('still attempts the wildcard purge on sync after the base request fails', function (int $status) {
+    config(['queue.default' => 'sync']);
+    Http::fakeSequence()->push('', $status)->push('', 200);
+    fakeSites(['english' => 'https://example.com/']);
+
+    PurgeAllJob::dispatch();
+
+    expect(Http::recorded()->map(fn ($pair) => $pair[0]['urls'])->all())->toBe([
+        ['https://example.com'],
+        ['https://example.com/*'],
+    ]);
+})->with([429, 503, 400]);
+
+it('keeps the entire pending URL set on a worker retry', function () {
+    Queue::fake();
+    Http::fakeSequence()->push('', 429)->push('', 200);
+    $urls = exactUrls(55);
+    $job = (new PurgeUrlsJob($urls))->withFakeQueueInteractions();
+    $job->handle(new CdnPurgeService);
+    $job->assertReleased();
+    Queue::assertNothingPushed();
+
+    (new PurgeUrlsJob($job->urls))->withFakeQueueInteractions()->handle(new CdnPurgeService);
+    Queue::assertPushed(PurgeUrlsJob::class, fn ($next) => $next->urls === array_slice($urls, 50));
+});
+
+it('attempts later batches on the in-process deferred queue too', function () {
+    if (! class_exists(DeferredQueue::class)) {
+        $this->markTestSkipped('This Laravel version does not ship the deferred queue.');
+    }
+
+    config(['queue.default' => 'deferred', 'queue.connections.deferred.driver' => 'deferred']);
+    Http::fakeSequence()->push('', 503)->push('', 200);
+    $urls = exactUrls(51);
+    PurgeUrlsJob::dispatch($urls);
+    Http::assertNothingSent();
+    app(DeferredCallbackCollection::class)->invoke();
+    expect(Http::recorded()->map(fn ($pair) => $pair[0]['urls'])->all())->toBe(array_chunk($urls, 50));
 });

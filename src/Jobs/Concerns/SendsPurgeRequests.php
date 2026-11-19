@@ -4,7 +4,6 @@ namespace Noo\StatamicBunnyPurge\Jobs\Concerns;
 
 use DateTimeInterface;
 use Illuminate\Queue\Jobs\SyncJob;
-use Illuminate\Support\Facades\Log;
 use Noo\StatamicBunnyPurge\CdnPurgeService;
 use Noo\StatamicBunnyPurge\Exceptions\PurgeFailedException;
 use Noo\StatamicBunnyPurge\Exceptions\RateLimitedException;
@@ -38,6 +37,14 @@ trait SendsPurgeRequests
      */
     protected function purge(CdnPurgeService $cdnPurgeService, array $urls): void
     {
+        // Inline queues cannot retry or pace a continuation. Attempt every
+        // independent batch even when a previous request has failed.
+        if ($this->job === null || $this->job instanceof SyncJob) {
+            $cdnPurgeService->purgeUrls($urls);
+
+            return;
+        }
+
         $batches = $cdnPurgeService->batches($urls);
         $batch = array_shift($batches);
 
@@ -48,15 +55,12 @@ trait SendsPurgeRequests
         try {
             $cdnPurgeService->sendBatch($batch);
         } catch (RateLimitedException $e) {
-            $this->retryLater($e, $e->retryAfter);
+            $this->release($e->retryAfter);
 
             return;
         } catch (PurgeFailedException $e) {
             if ($e->retryable) {
-                // Let the worker retry with backoff().
-                $this->retryLater($e);
-
-                return;
+                throw $e;
             }
 
             // Retrying a rejected request would not help: purge the rest
@@ -85,30 +89,5 @@ trait SendsPurgeRequests
 
         PurgeUrlsJob::dispatch(array_merge(...$remaining))
             ->delay($sameBucket ? CdnPurgeService::pacingSeconds($sent) : 0);
-    }
-
-    private function retryLater(PurgeFailedException $e, ?int $delay = null): void
-    {
-        if (! $this->canBeRetried()) {
-            // The sync driver runs jobs inline and cannot release them, and
-            // throwing would fail the request that triggered the purge.
-            Log::warning('CDN purge cannot be retried without a queue worker', [
-                'urls' => $e->urls,
-                'exception' => $e->getMessage(),
-            ]);
-
-            return;
-        }
-
-        if ($delay === null) {
-            throw $e;
-        }
-
-        $this->release($delay);
-    }
-
-    private function canBeRetried(): bool
-    {
-        return $this->job !== null && ! $this->job instanceof SyncJob;
     }
 }

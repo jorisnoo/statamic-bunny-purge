@@ -11,10 +11,10 @@ class PurgeUrlOnAssetReuploaded
     {
         $containers = config('statamic.bunny-purge.purge_asset_containers', []);
 
-        if (! in_array($event->asset->container()->handle(), $containers)) {
+        if (! in_array($event->asset->container()->handle(), $containers, true) || ! $url = $event->asset->absoluteUrl()) {
             return;
         }
 
-        PurgeUrlJob::dispatch($event->asset->absoluteUrl());
+        PurgeUrlJob::dispatch($url);
     }
 }

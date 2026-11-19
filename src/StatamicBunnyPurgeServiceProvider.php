@@ -2,11 +2,13 @@
 
 namespace Noo\StatamicBunnyPurge;
 
+use Illuminate\Foundation\Http\Events\RequestHandled;
 use Illuminate\Support\Facades\Event;
 use Noo\StatamicBunnyPurge\Listeners\PurgeAllOnStaticCacheCleared;
 use Noo\StatamicBunnyPurge\Listeners\PurgeUrlOnAssetDeleted;
 use Noo\StatamicBunnyPurge\Listeners\PurgeUrlOnAssetReuploaded;
 use Noo\StatamicBunnyPurge\Listeners\PurgeUrlOnAssetSaved;
+use Noo\StatamicBunnyPurge\Listeners\PurgeUrlOnRecache;
 use Noo\StatamicBunnyPurge\Listeners\PurgeUrlOnUrlInvalidated;
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
@@ -15,7 +17,9 @@ use Statamic\Events\AssetReuploaded;
 use Statamic\Events\AssetSaved;
 use Statamic\Events\StaticCacheCleared;
 use Statamic\Events\UrlInvalidated;
+use Statamic\StaticCaching\DefaultInvalidator;
 use Statamic\StaticCaching\Invalidator;
+use Statamic\StaticCaching\RecacheToken;
 
 class StatamicBunnyPurgeServiceProvider extends PackageServiceProvider
 {
@@ -42,7 +46,7 @@ class StatamicBunnyPurgeServiceProvider extends PackageServiceProvider
         }
 
         $this->app->singleton(CdnPurgeService::class);
-        $this->app->singleton(UrlCollector::class);
+        $this->app->scoped(UrlCollector::class);
 
         if (! filled(config('statamic.bunny-purge.api_key'))) {
             return;
@@ -54,10 +58,21 @@ class StatamicBunnyPurgeServiceProvider extends PackageServiceProvider
 
         // Hook Statamic's invalidator so the URLs of one change are purged in
         // batches, and so rules set to 'all' (which fire no event) still purge.
-        $this->app->extend(Invalidator::class, fn (Invalidator $invalidator, $app) => $invalidator instanceof PurgingInvalidator
-            ? $invalidator
-            : new PurgingInvalidator($invalidator, $app->make(UrlCollector::class)));
+        $this->app->extend(Invalidator::class, function (Invalidator $invalidator, $app) {
+            if ($invalidator instanceof PurgingInvalidator) {
+                return $invalidator;
+            }
 
+            if ($invalidator::class === DefaultInvalidator::class) {
+                $invalidator = new DefaultInvalidator($app->make(RuleCacher::class), config('statamic.static_caching.invalidation.rules', []));
+            }
+
+            return new PurgingInvalidator($invalidator, $app->make(UrlCollector::class));
+        });
+
+        if (class_exists(RecacheToken::class)) {
+            Event::listen(RequestHandled::class, PurgeUrlOnRecache::class);
+        }
         Event::listen(UrlInvalidated::class, PurgeUrlOnUrlInvalidated::class);
         Event::listen(AssetReuploaded::class, PurgeUrlOnAssetReuploaded::class);
         Event::listen(AssetSaved::class, PurgeUrlOnAssetSaved::class);

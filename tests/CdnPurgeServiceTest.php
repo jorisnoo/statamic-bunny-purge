@@ -109,3 +109,17 @@ it('reports a failed purge as false from purgeUrl', function () {
 
     expect((new CdnPurgeService)->purgeUrl('https://example.com/opera'))->toBeFalse();
 });
+
+it('normalizes bearer auth and sends no access key', function () {
+    config(['statamic.bunny-purge.auth_type' => ' Bearer ']);
+    Http::fake();
+    (new CdnPurgeService)->sendBatch(['https://example.com/page']);
+    Http::assertSent(fn ($request) => $request->hasHeader('Authorization', 'Bearer test-key') && ! $request->hasHeader('AccessKey'));
+});
+
+it('rejects unsupported auth before transmitting credentials', function () {
+    config(['statamic.bunny-purge.auth_type' => 'unknown']);
+    Http::fake();
+    expect((new CdnPurgeService)->purgeUrl('https://example.com/page'))->toBeFalse();
+    Http::assertNothingSent();
+});

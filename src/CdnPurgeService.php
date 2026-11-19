@@ -47,7 +47,7 @@ class CdnPurgeService
     {
         $this->apiUrl = config('statamic.bunny-purge.api_url');
         $this->apiKey = config('statamic.bunny-purge.api_key');
-        $this->authType = config('statamic.bunny-purge.auth_type', 'access_key');
+        $this->authType = strtolower(trim(config('statamic.bunny-purge.auth_type', 'access_key')));
     }
 
     public function isEnabled(): bool
@@ -172,8 +172,15 @@ class CdnPurgeService
             throw new PurgeFailedException('CDN purge API key not configured', $urls);
         }
 
+        $headers = $this->authHeaders($this->apiKey);
+        if ($headers === null) {
+            Log::error('Invalid CDN purge auth_type: expected access_key or bearer');
+
+            throw new PurgeFailedException('Invalid CDN purge auth_type', $urls);
+        }
+
         try {
-            $response = Http::withHeaders($this->authHeaders($this->apiKey))
+            $response = Http::withHeaders($headers)
                 ->connectTimeout(10)
                 ->timeout(30)
                 ->post($this->apiUrl, ['urls' => $urls]);
@@ -201,7 +208,7 @@ class CdnPurgeService
             throw new RateLimitedException("CDN purge rate-limited; retry in {$retryAfter}s", $urls, $retryAfter);
         }
 
-        if ($response->failed()) {
+        if (! $response->successful()) {
             Log::error('CDN purge request failed', [
                 'urls' => $urls,
                 'status' => $response->status(),
@@ -238,12 +245,13 @@ class CdnPurgeService
         return min($seconds, self::MAX_RATE_LIMIT_BACKOFF_SECONDS);
     }
 
-    /** @return array<string, string> */
-    private function authHeaders(string $apiKey): array
+    /** @return array<string, string>|null */
+    private function authHeaders(string $apiKey): ?array
     {
         return match ($this->authType) {
             'bearer' => ['Authorization' => "Bearer {$apiKey}"],
-            default => ['AccessKey' => $apiKey],
+            'access_key' => ['AccessKey' => $apiKey],
+            default => null,
         };
     }
 }

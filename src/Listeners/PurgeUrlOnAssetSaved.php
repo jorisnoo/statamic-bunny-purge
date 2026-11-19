@@ -11,7 +11,7 @@ class PurgeUrlOnAssetSaved
     {
         $containers = config('statamic.bunny-purge.purge_asset_containers', []);
 
-        if (! in_array($event->asset->container()->handle(), $containers)) {
+        if (! in_array($event->asset->container()->handle(), $containers, true)) {
             return;
         }
 
@@ -22,8 +22,11 @@ class PurgeUrlOnAssetSaved
             return;
         }
 
-        $oldUrl = rtrim($event->asset->container()->absoluteUrl(), '/').'/'.ltrim($oldPath, '/');
-
-        PurgeUrlJob::dispatch($oldUrl);
+        // Let the installed Statamic version encode the previous path exactly
+        // as it did when the asset was public. Never mutate the saved asset.
+        $original = clone $event->asset;
+        if ($url = $original->path($oldPath)->absoluteUrl()) {
+            PurgeUrlJob::dispatch($url);
+        }
     }
 }

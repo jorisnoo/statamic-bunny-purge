@@ -4,6 +4,8 @@ namespace Noo\StatamicBunnyPurge;
 
 use Noo\StatamicBunnyPurge\Jobs\PurgeUrlsJob;
 
+use function Illuminate\Support\defer;
+
 /**
  * Collects the URLs Statamic invalidates during one invalidator call, so
  * they are purged in batches by one job instead of one job per URL.
@@ -29,28 +31,30 @@ class UrlCollector
             return $callback();
         } finally {
             if (--$this->depth === 0) {
-                $urls = array_keys($this->urls);
-                $this->urls = [];
-
-                if ($urls !== []) {
-                    PurgeUrlsJob::dispatch($urls);
-                }
+                $this->flush();
             }
         }
     }
 
-    /**
-     * Add a URL to the current collection. Returns false when nothing is
-     * being collected, so the caller should purge the URL itself.
-     */
-    public function add(string $url): bool
+    public function add(string $url): void
     {
-        if ($this->depth === 0) {
-            return false;
+        if ($this->depth === 0 && $this->urls === []) {
+            // Laravel runs deferred callbacks after HTTP requests, commands
+            // and individual worker jobs, not just when the process exits.
+            defer(fn () => $this->flush())->always();
         }
 
         $this->urls[$url] = true;
+    }
 
-        return true;
+    private function flush(): void
+    {
+        if ($this->urls === []) {
+            return;
+        }
+
+        $urls = array_keys($this->urls);
+        $this->urls = [];
+        PurgeUrlsJob::dispatch($urls);
     }
 }

@@ -1,13 +1,12 @@
 name: Tests
 
 on:
+  pull_request:
   push:
-    paths:
-      - '**.php'
-      - '.github/workflows/tests.yml'
-      - 'phpunit.xml.dist'
-      - 'composer.json'
-      - 'composer.lock'
+    branches: ['**']
+
+permissions:
+  contents: read
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -15,24 +14,24 @@ concurrency:
 
 jobs:
   test:
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
-        os: [ubuntu-latest]
-        php: [8.4, 8.3]
-        laravel: [12.*]
-        stability: [prefer-lowest, prefer-stable]
         include:
-          - laravel: 12.*
-            testbench: 10.*
+          - {php: '8.3', laravel: '12.*', statamic: '5.*', testbench: '10.*', stability: prefer-lowest}
+          - {php: '8.4', laravel: '12.*', statamic: '5.*', testbench: '10.*', stability: prefer-stable}
+          - {php: '8.3', laravel: '12.*', statamic: '6.*', testbench: '10.*', stability: prefer-lowest}
+          - {php: '8.5', laravel: '13.*', statamic: '6.*', testbench: '11.*', stability: prefer-stable}
 
-    name: P${{ matrix.php }} - L${{ matrix.laravel }} - ${{ matrix.stability }} - ${{ matrix.os }}
+    name: PHP ${{ matrix.php }} / L${{ matrix.laravel }} / S${{ matrix.statamic }} / ${{ matrix.stability }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Setup PHP
         uses: shivammathur/setup-php@2.40.0
@@ -48,7 +47,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          composer require "laravel/framework:${{ matrix.laravel }}" "orchestra/testbench:${{ matrix.testbench }}" --no-interaction --no-update
+          composer require "laravel/framework:${{ matrix.laravel }}" "statamic/cms:${{ matrix.statamic }}" "orchestra/testbench:${{ matrix.testbench }}" --no-interaction --no-update
           composer update --${{ matrix.stability }} --prefer-dist --no-interaction
 
       - name: List Installed Dependencies
@@ -56,3 +55,20 @@ jobs:
 
       - name: Execute tests
         run: vendor/bin/pest --ci
+
+      - name: Check style and analyse current dependencies
+        if: matrix.laravel == '13.*'
+        run: |
+          vendor/bin/pint --test
+          composer analyse
+          composer audit
+
+  required:
+    name: Package checks
+    if: always()
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - run: test "$RESULT" = success
+        env:
+          RESULT: ${{ needs.test.result }}

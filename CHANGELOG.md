@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.0] - 2026-11-19
+
+### Fixed
+
+- Purge full sites and resolved exact or wildcard rules, including Statamic 6 background refreshes and wildcard matches missing from the origin cache.
+- Batch direct invalidations at request, command and worker boundaries. Separate exact and prefix batches, pace and retry them on persistent queues, and continue attempting remaining batches on inline queues after failures.
+- Skip private assets, trim comma-separated container handles and purge the original Statamic-encoded URL on renames.
+
+### Changed
+
+- Authentication modes are case-insensitive. Unsupported `CDN_PURGE_AUTH_TYPE` values now fail without sending credentials; use `access_key` or `bearer`.
+
 ## [0.5.3](https://github.com/jorisnoo/statamic-bunny-purge/releases/tag/0.5.3) (2026-07-18)
 
 ### Features
