@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.1] - 2026-11-19
+
+### Fixed
+
+- Send native Bunny purges as HTTPS POSTs with one encoded `url` query parameter and an `AccessKey` header. Custom gateways retain their existing JSON batching and authentication.
+- Preserve successful progress when a native batch fails or takes too long for a worker. Inline purges respect same-bucket pacing and rate-limit cooldowns while still attempting the remaining URLs.
+
 ## [0.6.0] - 2026-11-19
 
 ### Fixed

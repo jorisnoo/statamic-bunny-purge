@@ -4,6 +4,7 @@ namespace Noo\StatamicBunnyPurge\Tests;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Sleep;
 use Noo\StatamicBunnyPurge\StatamicBunnyPurgeServiceProvider;
 use Orchestra\Testbench\TestCase as Orchestra;
 use Statamic\StaticCaching\ServiceProvider as StaticCachingServiceProvider;
@@ -14,6 +15,7 @@ class TestCase extends Orchestra
     {
         parent::setUp();
         Http::preventStrayRequests();
+        Sleep::fake();
 
         Factory::guessFactoryNamesUsing(
             fn (string $modelName) => 'Noo\\StatamicBunnyPurge\\Database\\Factories\\'.class_basename($modelName).'Factory'

@@ -3,6 +3,7 @@
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Sleep;
 use Noo\StatamicBunnyPurge\CdnPurgeService;
 use Noo\StatamicBunnyPurge\Exceptions\PurgeFailedException;
 use Noo\StatamicBunnyPurge\Exceptions\RateLimitedException;
@@ -14,8 +15,8 @@ it('sends the exact url and the wildcard per site in separate requests when purg
     expect((new CdnPurgeService)->purgeAll())->toBeTrue();
 
     Http::assertSentCount(2);
-    Http::assertSent(fn (Request $request) => $request['urls'] === ['https://example.com']);
-    Http::assertSent(fn (Request $request) => $request['urls'] === ['https://example.com/*']);
+    Http::assertSent(fn (Request $request) => nativeTarget($request) === 'https://example.com');
+    Http::assertSent(fn (Request $request) => nativeTarget($request) === 'https://example.com/*');
 });
 
 it('drops a wildcard another site already covers when purging all', function () {
@@ -58,15 +59,18 @@ it('never mixes exact and wildcard urls in one request', function () {
     expect($batches[3])->toContain('https://example.com/');
 });
 
-it('authenticates with the access key header and a json body', function () {
+it('uses the documented native POST query and preserves nested URL encoding', function () {
     Http::fake(['*' => Http::response('', 200)]);
 
-    (new CdnPurgeService)->sendBatch(['https://example.com/opera']);
+    $target = 'https://example.com/my%20opera/?x=a+b&x=%2F';
+    (new CdnPurgeService)->sendBatch([$target]);
 
-    Http::assertSent(fn (Request $request) => $request->url() === 'https://api.bunny.net/purge'
+    Http::assertSent(fn (Request $request) => str_starts_with($request->url(), 'https://api.bunny.net/purge?url=')
+        && nativeTarget($request) === $target
         && $request->method() === 'POST'
         && $request->hasHeader('AccessKey', 'test-key')
-        && $request->data() === ['urls' => ['https://example.com/opera']]);
+        && ! $request->hasHeader('Authorization')
+        && $request->body() === '');
 });
 
 it('throws a rate limit with the wait floored to the bucket refill window', function (array $batch, array $headers, array $body, int $expected) {
@@ -110,11 +114,15 @@ it('reports a failed purge as false from purgeUrl', function () {
     expect((new CdnPurgeService)->purgeUrl('https://example.com/opera'))->toBeFalse();
 });
 
-it('normalizes bearer auth and sends no access key', function () {
+it('preserves JSON batches and normalized bearer auth for a custom gateway', function () {
+    config(['statamic.bunny-purge.api_url' => 'https://gateway.example.com/purge']);
     config(['statamic.bunny-purge.auth_type' => ' Bearer ']);
     Http::fake();
-    (new CdnPurgeService)->sendBatch(['https://example.com/page']);
-    Http::assertSent(fn ($request) => $request->hasHeader('Authorization', 'Bearer test-key') && ! $request->hasHeader('AccessKey'));
+    (new CdnPurgeService)->sendBatch(exactUrls(3));
+    Http::assertSentCount(1);
+    Http::assertSent(fn ($request) => $request->url() === 'https://gateway.example.com/purge'
+        && $request->data() === ['urls' => exactUrls(3)]
+        && $request->hasHeader('Authorization', 'Bearer test-key') && ! $request->hasHeader('AccessKey'));
 });
 
 it('rejects unsupported auth before transmitting credentials', function () {
@@ -122,4 +130,19 @@ it('rejects unsupported auth before transmitting credentials', function () {
     Http::fake();
     expect((new CdnPurgeService)->purgeUrl('https://example.com/page'))->toBeFalse();
     Http::assertNothingSent();
+});
+
+it('refuses invalid native credentials and transport before sending', function (string $scheme, string $auth) {
+    config(['statamic.bunny-purge.auth_type' => $auth, 'statamic.bunny-purge.api_url' => "$scheme://api.bunny.net/purge"]);
+    Http::fake();
+    expect((new CdnPurgeService)->purgeUrl('https://example.com/page'))->toBeFalse();
+    Http::assertNothingSent();
+})->with([['https', 'bearer'], ['http', 'access_key']]);
+
+it('paces inline native requests after rate limits without dropping unattempted URLs', function () {
+    Http::fakeSequence()->push('', 429, ['Retry-After' => '71'])->push('')->push('');
+    $urls = ['https://example.com/blog/?q=1', 'https://example.com/news/*', 'https://example.com/files/*'];
+    expect((new CdnPurgeService)->purgeUrls($urls))->toBeFalse();
+    expect(Http::recorded()->map(fn ($pair) => nativeTarget($pair[0]))->all())->toBe($urls);
+    Sleep::assertSequence([Sleep::sleep(71)]);
 });

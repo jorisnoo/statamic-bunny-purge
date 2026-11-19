@@ -10,9 +10,8 @@ use Noo\StatamicBunnyPurge\Exceptions\RateLimitedException;
 use Noo\StatamicBunnyPurge\Jobs\PurgeUrlsJob;
 
 /**
- * Each run sends a single request, so a released or retried job resends
- * exactly the URLs that were not purged yet. Remaining batches are queued
- * as a new job, delayed when they draw from the bucket just used.
+ * Each run sends one logical batch. After a partial native batch, a new
+ * job starts at the failed URL instead of replaying completed requests.
  */
 trait SendsPurgeRequests
 {
@@ -37,8 +36,8 @@ trait SendsPurgeRequests
      */
     protected function purge(CdnPurgeService $cdnPurgeService, array $urls): void
     {
-        // Inline queues cannot retry or pace a continuation. Attempt every
-        // independent batch even when a previous request has failed.
+        // Inline queues cannot release a job; pace independent requests in
+        // process and continue after a failure.
         if ($this->job === null || $this->job instanceof SyncJob) {
             $cdnPurgeService->purgeUrls($urls);
 
@@ -53,18 +52,42 @@ trait SendsPurgeRequests
         }
 
         try {
-            $cdnPurgeService->sendBatch($batch);
-        } catch (RateLimitedException $e) {
-            $this->release($e->retryAfter);
-
-            return;
+            // Leave time for one more 30s HTTP call in a default 60s worker.
+            if ($tail = $cdnPurgeService->sendBatchUntil($batch, now()->addSeconds(15))) {
+                array_unshift($batches, $tail);
+            }
         } catch (PurgeFailedException $e) {
+            // A gateway rejects the whole batch; Bunny only rejects one URL.
+            // The batch was deduplicated, so the first failed URL identifies
+            // exactly where the successful prefix ends.
+            $offset = array_search($e->urls[0], $batch, true);
+            if ($offset === false) {
+                throw $e;
+            }
+
             if ($e->retryable) {
+                if ($offset > 0) {
+                    array_unshift($batches, array_slice($batch, $offset));
+                    $delay = $e instanceof RateLimitedException ? $e->retryAfter : CdnPurgeService::pacingSeconds($batch);
+                    $this->dispatchRemaining($batch, $batches, $delay);
+
+                    return;
+                }
+
+                if ($e instanceof RateLimitedException) {
+                    $this->release($e->retryAfter);
+
+                    return;
+                }
+
                 throw $e;
             }
 
             // Retrying a rejected request would not help: purge the rest
             // and fail this job so it shows up in failed_jobs.
+            if ($tail = array_slice($batch, $offset + count($e->urls))) {
+                array_unshift($batches, $tail);
+            }
             $this->dispatchRemaining($batch, $batches);
             $this->fail($e);
 
@@ -78,7 +101,7 @@ trait SendsPurgeRequests
      * @param  list<string>  $sent
      * @param  list<list<string>>  $remaining
      */
-    private function dispatchRemaining(array $sent, array $remaining): void
+    private function dispatchRemaining(array $sent, array $remaining, ?int $delay = null): void
     {
         if ($remaining === []) {
             return;
@@ -88,6 +111,8 @@ trait SendsPurgeRequests
         $sameBucket = CdnPurgeService::pacingSeconds($sent) === CdnPurgeService::pacingSeconds($next);
 
         PurgeUrlsJob::dispatch(array_merge(...$remaining))
-            ->delay($sameBucket ? CdnPurgeService::pacingSeconds($sent) : 0);
+            ->onConnection($this->connection)
+            ->onQueue($this->queue)
+            ->delay($delay ?? ($sameBucket ? CdnPurgeService::pacingSeconds($sent) : 0));
     }
 }

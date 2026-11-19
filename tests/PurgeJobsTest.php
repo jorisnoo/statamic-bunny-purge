@@ -5,13 +5,15 @@ use Illuminate\Queue\DeferredQueue;
 use Illuminate\Support\Defer\DeferredCallbackCollection;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Sleep;
 use Noo\StatamicBunnyPurge\CdnPurgeService;
 use Noo\StatamicBunnyPurge\Exceptions\PurgeFailedException;
 use Noo\StatamicBunnyPurge\Jobs\PurgeAllJob;
 use Noo\StatamicBunnyPurge\Jobs\PurgeUrlJob;
 use Noo\StatamicBunnyPurge\Jobs\PurgeUrlsJob;
 
-it('sends one batch per run and queues the rest after the bucket refills', function () {
+it('sends one gateway batch per run and queues the rest after the bucket refills', function () {
+    config(['statamic.bunny-purge.api_url' => 'https://gateway.example.com/purge']);
     Http::fake(['*' => Http::response('', 200)]);
     Queue::fake();
 
@@ -33,11 +35,12 @@ it('does not wait before switching to the other bucket', function () {
         ->withFakeQueueInteractions()
         ->handle(new CdnPurgeService);
 
-    Http::assertSent(fn (Request $request) => $request['urls'] === ['https://example.com/opera']);
+    Http::assertSent(fn (Request $request) => nativeTarget($request) === 'https://example.com/opera');
     Queue::assertPushed(PurgeUrlsJob::class, fn (PurgeUrlsJob $job) => $job->urls === ['https://example.com/*'] && $job->delay === 0);
 });
 
-it('purges everything in single-type batches of at most 50 urls', function () {
+it('purges everything in single-type gateway batches of at most 50 urls', function () {
+    config(['statamic.bunny-purge.api_url' => 'https://gateway.example.com/purge']);
     config()->set('queue.default', 'sync');
     Http::fake(['*' => Http::response('', 200)]);
 
@@ -48,6 +51,7 @@ it('purges everything in single-type batches of at most 50 urls', function () {
 
     expect($sent->map(fn (array $urls) => count($urls))->all())->toBe([50, 50, 20, 15, 5]);
     expect($sent->flatten()->sort()->values()->all())->toBe(collect([...$wildcards, ...exactUrls(120)])->sort()->values()->all());
+    Sleep::assertSequence([Sleep::sleep(10), Sleep::sleep(10), Sleep::sleep(30)]);
 });
 
 it('releases a rate-limited job for the floored wait instead of dropping it', function () {
@@ -80,6 +84,7 @@ it('throws on a server error so the queue retries the purge', function () {
 });
 
 it('fails a rejected purge so it reaches failed_jobs, and still purges the rest', function () {
+    config(['statamic.bunny-purge.api_url' => 'https://gateway.example.com/purge']);
     Http::fake(['*' => Http::response('bad request', 400)]);
     Queue::fake();
 
@@ -117,9 +122,9 @@ it('purges every site with the base urls first and the wildcards next', function
 
     PurgeAllJob::dispatch();
 
-    expect(Http::recorded()->map(fn (array $pair) => $pair[0]['urls'])->all())->toBe([
-        ['https://example.com', 'https://example.com/fr'],
-        ['https://example.com/*'],
+    expect(Http::recorded()->map(fn (array $pair) => nativeTarget($pair[0]))->all())->toBe([
+        'https://example.com', 'https://example.com/fr',
+        'https://example.com/*',
     ]);
 });
 
@@ -130,14 +135,15 @@ it('still attempts the wildcard purge on sync after the base request fails', fun
 
     PurgeAllJob::dispatch();
 
-    expect(Http::recorded()->map(fn ($pair) => $pair[0]['urls'])->all())->toBe([
-        ['https://example.com'],
-        ['https://example.com/*'],
+    expect(Http::recorded()->map(fn ($pair) => nativeTarget($pair[0]))->all())->toBe([
+        'https://example.com',
+        'https://example.com/*',
     ]);
 })->with([429, 503, 400]);
 
 it('keeps the entire pending URL set on a worker retry', function () {
     Queue::fake();
+    config(['statamic.bunny-purge.api_url' => 'https://gateway.example.com/purge']);
     Http::fakeSequence()->push('', 429)->push('', 200);
     $urls = exactUrls(55);
     $job = (new PurgeUrlsJob($urls))->withFakeQueueInteractions();
@@ -154,6 +160,7 @@ it('attempts later batches on the in-process deferred queue too', function () {
         $this->markTestSkipped('This Laravel version does not ship the deferred queue.');
     }
 
+    config(['statamic.bunny-purge.api_url' => 'https://gateway.example.com/purge']);
     config(['queue.default' => 'deferred', 'queue.connections.deferred.driver' => 'deferred']);
     Http::fakeSequence()->push('', 503)->push('', 200);
     $urls = exactUrls(51);
@@ -161,4 +168,30 @@ it('attempts later batches on the in-process deferred queue too', function () {
     Http::assertNothingSent();
     app(DeferredCallbackCollection::class)->invoke();
     expect(Http::recorded()->map(fn ($pair) => $pair[0]['urls'])->all())->toBe(array_chunk($urls, 50));
+});
+
+it('queues only unfinished native URLs after a partial batch', function (int $status, bool $retry, int $delay) {
+    Queue::fake();
+    Http::fakeSequence()->push('')->push('', $status, ['Retry-After' => '45']);
+    $urls = exactUrls(4);
+    $job = (new PurgeUrlsJob($urls))->onQueue('cdn')->withFakeQueueInteractions();
+    $job->handle(new CdnPurgeService);
+    expect(Http::recorded()->map(fn ($pair) => nativeTarget($pair[0]))->all())->toBe(array_slice($urls, 0, 2));
+    Queue::assertPushed(PurgeUrlsJob::class, fn ($next) => $next->urls === array_slice($urls, $retry ? 1 : 2)
+        && $next->delay === $delay && $next->queue === 'cdn');
+    $retry ? $job->assertNotFailed() : $job->assertFailed();
+})->with([[429, true, 45], [503, true, 10], [400, false, 10]]);
+
+it('checkpoints a slow native batch before the default worker timeout', function () {
+    $this->freezeTime();
+    Queue::fake();
+    Http::fake(function () {
+        $this->travel(16)->seconds();
+
+        return Http::response();
+    });
+    $urls = exactUrls(3);
+    (new PurgeUrlsJob($urls))->withFakeQueueInteractions()->handle(new CdnPurgeService);
+    Http::assertSentCount(1);
+    Queue::assertPushed(PurgeUrlsJob::class, fn ($job) => $job->urls === array_slice($urls, 1));
 });

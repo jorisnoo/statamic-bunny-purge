@@ -44,7 +44,7 @@ Set `CDN_PURGE_ALL_ON_STATIC_CACHE_CLEARED=false` when your deploy already flush
 
 ### Using a custom CDN
 
-Override the API URL and auth type to point at any CDN purge endpoint:
+The native [Bunny Core API](https://docs.bunny.net/api-reference/core/purge/purge-url) receives one HTTPS `POST /purge?url=…` per URL with the `AccessKey` header. Other endpoint hosts are treated as custom gateways: they must accept `POST` with a JSON body such as `{"urls":["https://example.com/page"]}`. Gateways may use `access_key` or `bearer`. Redirects are not followed.
 
 ```env
 CDN_PURGE_API_URL=https://cdn.example.com/api/cache/purge
@@ -62,7 +62,7 @@ With the default invalidator, resolved rules are sent to the CDN before their wi
 - Direct `UrlInvalidated` events are deduplicated and flushed at the end of the current request, Artisan command or queue job.
 - Statamic 6 background recache purges the resolved rules even when no local page is cached. After a successful authenticated warm request, the refreshed URL is purged again so the CDN cannot retain a copy it fetched from the old origin cache.
 - With `static_caching.invalidation.rules` set to `'all'`, Statamic flushes its whole static cache without firing an invalidation event. The package then purges every site, the same way it does when the static cache is cleared.
-- Requests carry at most 50 URLs, and exact and wildcard URLs are never sent together. Bunny rate-limits the two types separately, and wildcard purges (a URL that contains `*` or ends with `/`) have a much smaller allowance. Wildcard batches hold at most 15 URLs and are spaced 30 seconds apart; exact batches are spaced 10 seconds apart.
+- Each logical batch holds up to 50 exact or 15 prefix URLs. The native API receives individual requests; a custom gateway receives one JSON request per batch. Same-type batches are spaced 10 seconds apart for exact URLs, 30 seconds for prefixes. Switching buckets needs no delay.
 - A purge-all sends each site's base URL, then `<base URL>/*`. A wildcard covered by another site's wildcard (for example `/fr/*` under `/*`) is left out.
 
 ### Asset and query variants
@@ -74,13 +74,13 @@ Renaming/moving a public asset purges its previous public URL. Reupload and dele
 Run a queue worker with a persistent driver such as Redis or database. With a worker:
 
 - A rate-limited purge (HTTP 429) is released back onto the queue. It waits for the time the CDN asks for, but at least as long as the rate limit needs to refill (10 seconds for exact URLs, 30 seconds for wildcards) and at most 5 minutes.
-- Server errors and connection failures throw, so the queue retries them with increasing backoff.
+- Server errors and connection failures trigger retries with backoff. If a native batch has already made progress, only unfinished URLs are queued again. Slow batches yield between requests to leave room within Laravel's default worker timeout.
 - Jobs keep retrying for up to an hour, independent of the worker's `--tries`, and then land in `failed_jobs`.
 - A purge the CDN rejects (another 4xx, such as a bad API key) is not retried. The job fails right away so it shows up in `failed_jobs`.
 
-The `sync` driver (and Laravel's in-process `deferred` queue) cannot release or retry a request. Each independent batch is attempted, including later wildcard batches after an earlier error. Failures are logged without failing the editor's request; there is no pacing.
+The `sync` driver (and Laravel's in-process `deferred` queue) cannot release or retry a request. Remaining independent URLs are still attempted. The process waits for the next same-type batch and honors a 429 cooldown before sending more URLs of that type. Use a persistent worker to keep these waits out of editor requests.
 
-`CdnPurgeService::purgeUrl()` and `purgeAll()` still send immediately and return `false` on failure. They split requests by type but do not space or retry them.
+`CdnPurgeService::purgeUrl()`, `purgeUrls()` and `purgeAll()` use the same inline transport and pacing, returning `false` if any request failed.
 
 ## Testing
 

@@ -2,9 +2,12 @@
 
 namespace Noo\StatamicBunnyPurge;
 
+use DateTimeInterface;
+use GuzzleHttp\Psr7\Uri;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Sleep;
 use Noo\StatamicBunnyPurge\Exceptions\PurgeFailedException;
 use Noo\StatamicBunnyPurge\Exceptions\RateLimitedException;
 use Statamic\Facades\Site;
@@ -14,12 +17,10 @@ use Throwable;
 class CdnPurgeService
 {
     /**
-     * Bunny accepts up to 50 URLs per purge request, but rate-limits with a
-     * per-account, per-type token bucket (one token per URL). Exact purges
-     * burst to ~120 tokens and refill at 5/s; wildcard purges (a URL that
-     * contains `*` or ends with `/`) burst to ~20 and refill at 0.5/s. A
-     * request mixing both types is charged to both buckets, so every request
-     * carries one type only, sized below that type's burst.
+     * Logical batches fit Bunny's per-account, per-type burst allowances:
+     * exact purges refill at 5/s; prefix purges refill at 0.5/s. The native
+     * API requires one request per URL. Batch-compatible gateways accept
+     * the whole logical batch as JSON.
      */
     public const EXACT_BATCH_LIMIT = 50;
 
@@ -39,6 +40,8 @@ class CdnPurgeService
 
     private string $apiUrl;
 
+    private ?Uri $bunnyEndpoint;
+
     private ?string $apiKey;
 
     private string $authType;
@@ -46,6 +49,8 @@ class CdnPurgeService
     public function __construct()
     {
         $this->apiUrl = config('statamic.bunny-purge.api_url');
+        $endpoint = new Uri($this->apiUrl);
+        $this->bunnyEndpoint = rtrim($endpoint->getHost(), '.') === 'api.bunny.net' ? $endpoint : null;
         $this->apiKey = config('statamic.bunny-purge.api_key');
         $this->authType = strtolower(trim(config('statamic.bunny-purge.auth_type', 'access_key')));
     }
@@ -61,8 +66,7 @@ class CdnPurgeService
     }
 
     /**
-     * Purge every site immediately, without queueing or pacing. The queued
-     * PurgeAllJob paces wildcard batches and retries rate-limited requests.
+     * Purge every site in this process, without queueing retries.
      */
     public function purgeAll(): bool
     {
@@ -70,21 +74,35 @@ class CdnPurgeService
     }
 
     /**
-     * Send every batch for the given URLs immediately and report whether all
-     * of them succeeded. Failures are logged, not thrown.
+     * Send every batch in this process and report whether all succeeded.
+     * Failures are logged; independent remaining requests are still sent.
      *
      * @param  array<int, string>  $urls
      */
     public function purgeUrls(array $urls): bool
     {
         $allSucceeded = true;
+        $previousPace = null;
+        $wait = 0;
 
         foreach ($this->batches($urls) as $batch) {
-            try {
-                $this->sendBatch($batch);
-            } catch (PurgeFailedException) {
-                $allSucceeded = false;
+            $pace = self::pacingSeconds($batch);
+            foreach ($this->requests($batch) as $request) {
+                if ($previousPace === $pace && $wait > 0) {
+                    Sleep::sleep($wait);
+                }
+                $previousPace = $pace;
+                $wait = 0;
+
+                try {
+                    $this->sendRequest($request);
+                } catch (PurgeFailedException $e) {
+                    $allSucceeded = false;
+                    $wait = $e instanceof RateLimitedException ? $e->retryAfter : 0;
+                }
             }
+
+            $wait = max($pace, $wait);
         }
 
         return $allSucceeded;
@@ -118,7 +136,7 @@ class CdnPurgeService
 
     public static function isWildcard(string $url): bool
     {
-        return str_contains($url, '*') || str_ends_with($url, '/');
+        return str_contains($url, '*') || str_ends_with((string) parse_url($url, PHP_URL_PATH), '/');
     }
 
     /**
@@ -157,7 +175,7 @@ class CdnPurgeService
     }
 
     /**
-     * Send one purge request.
+     * Send one logical batch, stopping at the first failed wire request.
      *
      * @param  list<string>  $urls
      *
@@ -166,10 +184,53 @@ class CdnPurgeService
      */
     public function sendBatch(array $urls): void
     {
+        $this->sendBatchUntil($urls, null);
+    }
+
+    /**
+     * @param  list<string>  $urls
+     * @return list<string> Unattempted URLs after the deadline.
+     */
+    public function sendBatchUntil(array $urls, ?DateTimeInterface $deadline): array
+    {
+        foreach ($this->requests($urls) as $index => $request) {
+            if ($index > 0 && $deadline !== null && now()->gte($deadline)) {
+                return array_slice($urls, $index);
+            }
+            $this->sendRequest($request);
+        }
+
+        return [];
+    }
+
+    /**
+     * @param  list<string>  $urls
+     * @return iterable<list<string>>
+     */
+    private function requests(array $urls): iterable
+    {
+        if ($this->bunnyEndpoint === null) {
+            yield $urls;
+        } else {
+            foreach ($urls as $url) {
+                yield [$url];
+            }
+        }
+    }
+
+    /** @param list<string> $urls */
+    private function sendRequest(array $urls): void
+    {
         if (! $this->apiKey) {
             Log::warning('CDN purge API key not configured');
 
             throw new PurgeFailedException('CDN purge API key not configured', $urls);
+        }
+
+        if ($this->bunnyEndpoint !== null && ($this->bunnyEndpoint->getScheme() !== 'https' || $this->authType !== 'access_key')) {
+            Log::error('The Bunny Core API requires HTTPS and access_key authentication');
+
+            throw new PurgeFailedException('The Bunny Core API requires HTTPS and access_key authentication', $urls);
         }
 
         $headers = $this->authHeaders($this->apiKey);
@@ -180,10 +241,10 @@ class CdnPurgeService
         }
 
         try {
-            $response = Http::withHeaders($headers)
-                ->connectTimeout(10)
-                ->timeout(30)
-                ->post($this->apiUrl, ['urls' => $urls]);
+            $client = Http::withHeaders($headers)->withoutRedirecting()->connectTimeout(10)->timeout(30);
+            $response = $this->bunnyEndpoint === null
+                ? $client->post($this->apiUrl, ['urls' => $urls])
+                : $client->send('POST', (string) Uri::withQueryValue($this->bunnyEndpoint, 'url', rawurlencode($urls[0])));
         } catch (Throwable $e) {
             Log::error('CDN purge request threw', [
                 'urls' => $urls,

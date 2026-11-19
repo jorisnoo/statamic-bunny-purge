@@ -66,8 +66,8 @@ it('purges every site when the invalidation rules are all', function () {
     // neither UrlInvalidated nor StaticCacheCleared.
     app(Invalidator::class)->invalidate(Mockery::mock(Entry::class));
 
-    Http::assertSent(fn (Request $request) => $request['urls'] === ['https://example.com']);
-    Http::assertSent(fn (Request $request) => $request['urls'] === ['https://example.com/*']);
+    Http::assertSent(fn (Request $request) => nativeTarget($request) === 'https://example.com');
+    Http::assertSent(fn (Request $request) => nativeTarget($request) === 'https://example.com/*');
 });
 
 it('purges every site on refresh when the invalidation rules are all', function () {

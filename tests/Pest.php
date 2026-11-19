@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Http\Client\Request;
 use Noo\StatamicBunnyPurge\Tests\TestCase;
 use Statamic\Facades\Site;
 use Statamic\Sites\Site as StatamicSite;
@@ -31,4 +32,11 @@ function fakeSites(array $absoluteUrls): void
 function exactUrls(int $count, string $prefix = 'https://example.com/page-'): array
 {
     return array_map(fn (int $i) => $prefix.$i, range(1, $count));
+}
+
+function nativeTarget(Request $request): string
+{
+    parse_str((string) parse_url($request->url(), PHP_URL_QUERY), $parameters);
+
+    return $parameters['url'];
 }
